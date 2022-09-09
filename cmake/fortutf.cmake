@@ -3,6 +3,9 @@ set(FORTUTF_PROJECT_TEST_SCRIPT ${CMAKE_CURRENT_BINARY_DIR}/run_tests.f90)
 get_filename_component(FORTUTF_DIR ${CMAKE_CURRENT_LIST_DIR} DIRECTORY)
 FILE(GLOB FORTUTF_SRCS CONFIGURE_DEPENDS ${FORTUTF_DIR}/src/*.f90)
 
+FILE(GLOB_RECURSE TESTS ${FORTUTF_PROJECT_TEST_DIR}/test_*.f90)
+list(APPEND TEST_LIST ${TESTS})
+
 function(FortUTF_Find_Tests)
     if(NOT TARGET ${FORTUTF})
         if(NOT DEFINED ${FORTUTF})
@@ -22,10 +25,19 @@ function(FortUTF_Find_Tests)
       DEPENDS ${FORTUTF_PROJECT_SRC_FILES}
       )
 
-    add_executable(${PROJECT_NAME}_Tests ${FORTUTF_PROJECT_SRC_FILES} ${FORTUTF_SRCS} ${TEST_LIST} ${FORTUTF_PROJECT_TEST_SCRIPT})
+    add_library(${PROJECT_NAME}_Tests_lib ${TEST_LIST})
+
+    add_executable(${PROJECT_NAME}_Tests ${FORTUTF_PROJECT_SRC_FILES} ${FORTUTF_SRCS} ${FORTUTF_PROJECT_TEST_SCRIPT})
+
+    add_dependencies(${PROJECT_NAME}_Tests ${PROJECT_NAME}_Tests_lib)
 
     if(FORTUTF_PROJECT_MOD_DIR)
         message(STATUS "\tIncluding library: ${FORTUTF_PROJECT_MOD_DIR}")
+        TARGET_INCLUDE_DIRECTORIES(
+            ${PROJECT_NAME}_Tests_lib
+            PUBLIC
+            ${FORTUTF_PROJECT_MOD_DIR}
+        )
         TARGET_INCLUDE_DIRECTORIES(
             ${PROJECT_NAME}_Tests
             PUBLIC
@@ -39,6 +51,8 @@ function(FortUTF_Find_Tests)
         target_link_libraries(
             ${PROJECT_NAME}_Tests ${FORTUTF_PROJECT_SRC_LIBRARY}
         )
+        
+        add_dependencies(${PROJECT_NAME}_Tests_lib ${FORTUTF_PROJECT_SRC_LIBRARY})
     endif()
 
     message(STATUS "\tCompiler Flags: ${CMAKE_Fortran_FLAGS}")
